@@ -9,20 +9,22 @@ class Xbee_lib
 {
 public:
   Xbee_lib(SoftwareSerial* ss);
-  uint8_t Get_checksum(uint8_t frame[], uint8_t len);
-  void Set_dest_addr(uint8_t array[], uint8_t dest);
-  uint8_t Get_address(uint8_t address_byte);
-  void Clear_array(uint8_t array[], uint8_t len);
+  uint8_t Get_checksum(const uint8_t frame[], const uint8_t len);
+  void Set_dest_addr(uint8_t array[], const uint8_t dest);
+  uint8_t Get_address(const uint8_t address_byte);
+  void Clear_array(uint8_t array[], const uint8_t len);
   uint8_t Transmit_data(uint8_t array[],
-                        uint8_t len,
-                        ID dest = ID::XBEE_1);
+                        const uint8_t len,
+                        const ID dest = ID::XBEE_1);
 
-  void Process_byte(uint8_t rx_byte);
+  uint8_t Transmit_data(const struct Msg_data tx_msg);
+
+  void Process_byte(const uint8_t rx_byte);
   void Clear_msg(struct Msg_data& msg);
   void Set_callback(void (*msg_callback)(struct Msg_data));
-  void Begin(uint32_t baud);
-  void Print_array(uint8_t array[], uint8_t len, bool hex);
-  void Print_msg(struct Msg_data msg, uint8_t len_payload);
+  void Begin(const uint32_t baud);
+  void Print_array(const uint8_t array[], const uint8_t len, bool hex = true);
+  void Print_msg(const struct Msg_data msg, bool hex = true);
 
 protected:
 

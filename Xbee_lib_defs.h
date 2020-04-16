@@ -15,14 +15,14 @@
 // xbee6 address  0x00, 0x13, 0xA2, 0x00, 0x41, 0x25, 0xA4, 0x95
 
 // address of destination
-#define ADDR_B1  0x00
-#define ADDR_B2  0x13
-#define ADDR_B3  0xA2
-#define ADDR_B4  0x00
-#define ADDR_B5  0x41
-#define ADDR_B6  0x25
-#define ADDR_B7  0xA4
-#define ADDR_B8  0x79
+#define ADDR_B0  0x00
+#define ADDR_B1  0x13
+#define ADDR_B2  0xA2
+#define ADDR_B3  0x00
+#define ADDR_B4  0x41
+#define ADDR_B5  0x25
+#define ADDR_B6  0xA4
+#define ADDR_B7  0x79
 
 // TX frame structure
 namespace TX
@@ -33,7 +33,7 @@ enum TX
   MSB_LEN       = 1,  // length MSB
   LSB_LEN       = 2,  // length LSB
   FRAME_TYPE    = 3,  // 0x10 is TX request
-  FRAME_ID      = 4,  // 0x00 is n ack, 0x8B is received ack
+  FRAME_ID      = 4,  // frame id for ack
   DEST_0        = 5,  // address MSB
   DEST_1        = 6,
   DEST_2        = 7,
@@ -63,7 +63,7 @@ enum RX
   SOM           = 0,  // byte 0
   MSB_LEN       = 1,  // length MSB
   LSB_LEN       = 2,  // length LSB
-  FRAME_TYPE    = 3,  // 0x90 RX packet
+  FRAME_TYPE    = 3,  // 0x90 RX packet, 0x8B is received ack
   SRC_0         = 4,  // address MSB
   SRC_1         = 5,
   SRC_2         = 6,
@@ -74,9 +74,9 @@ enum RX
   SRC_7         = 11, // address LSB
   RESV_1        = 12,
   RESV_2        = 13,
-  TX_OPT        = 14, // transmit options (bit packed) (0xC1)
-                      // 0=Disable Ack, 1=Disable RD, 2=Enable NACK, 3=Trace Route
-                      // 4=Reserved,    5=Reserved,   6=Delivery 1,  7=Delivery 2
+  RX_OPT        = 14, // Receive options (bit packed) (0xC1)
+                      // 0=Packet acknowledged, 1=Packet was broadcast packet
+                      // 2,3,4,5=Unused   6=Delivery 1,  7=Delivery 2
                       // Bit 6&7: b'00=invalid, b'01=point/mulit, b'10=repeater, b'11=digimesh
   PAYLOAD_CNT   = 15, // payload tx count
   PAYLOAD_ID    = 16, // payload id type
@@ -119,6 +119,19 @@ enum RX_STATUS
   FAILED = 1
 };
 
+namespace CMD_ID
+{
+enum CMD_ID
+{
+  NO_ACK  = 'n',    // no acknowledgment expected
+  ACK     = 'a',    // basic response
+  IO_OUT  = 'o',    // digital, pmw, analog outputs
+  IO_IN   = 'i',    // digital, analog , sensor inputs
+  FNCTN_0 = 'f',    // custom function to call
+  FNCTN_1 = 'g'     // custom function to call
+};
+}
+
 struct Msg_data
 {
   bool valid = false;
@@ -126,8 +139,56 @@ struct Msg_data
   uint8_t address = 0;
   uint8_t length = 0;
   uint8_t payload_cnt = 0;
-  uint8_t payload_id = 0;
+  uint8_t payload_id = CMD_ID::ACK;
+  uint8_t payload_len = 0;
   uint8_t payload[3] = {};
 };
 
+
+
+
+
+//////////////////////////////////////////////////////////////////////
+
+// Receive frame type: 0x90
+/*
+7E, 0, 11, 90, 0, 13, A2, 0, 41, 4E, 65, 93, FF, FE, C1, D7, A1, 41, 41, 0, 7B,
+uint8_t rx_array[] = {0x7E,             // SOM
+                      0x00,             // length MSB
+                      0x11,             // length LSB
+                      0x90,             // Frame Type (0x10 Tx request)
+                      ADDR_B0, ADDR_B1, ADDR_B2,
+                      ADDR_B3, ADDR_B4, ADDR_B5,
+                      ADDR_B7, ADDR_B7,
+                      0xFF,             // Reserved 1
+                      0xFE,             // Reserved 2
+                      0x00,             // Receive options bit backed, (0xC0, 0xC1)
+                      0x01,             // Payload, count
+                      0xA1,             // Payload, ID
+                      0x32, 0x33, 0x34, // Payload
+                      0xD6};            // Checksum
+*/
+
+
+//////////////////////////////////////////////////////////////////////
+// Transmit request: 0x10
+/*
+7E, 0, 13, 10, 0, 0, 13, A2, 0, 41, 25, A4, 81, FF, FE, 0, 0, P0, P1, 32, 33, 34, D1
+uint8_t tx_array[] = {0x7E,             // SOM
+                      0x00,             // length MSB
+                      0x13,             // length LSB
+                      0x10,             // Frame Type (0x10 Tx request)
+                      0x00,             // Frame ID (used for ACK)
+                      ADDR_B0, ADDR_B1, ADDR_B2,
+                      ADDR_B3, ADDR_B4, ADDR_B5,
+                      ADDR_B7, ADDR_B7,
+                      0xFF,             // Reserved 1
+                      0xFE,             // Reserved 2
+                      0x00,             // Broadcast radius
+                      0x00,             // Transmit options bit backed, (0x00, 0xC0, 0xC1)
+                      0x01,             // Payload, count
+                      0xA1,             // Payload, ID
+                      0x32, 0x33, 0x34, // Payload
+                      0xD6};            // Checksum
+*/
 #endif

@@ -7,7 +7,7 @@ Xbee_lib::Xbee_lib(SoftwareSerial *ss)
 
 ////////////////////////////////////////////////////////////
 
-void Xbee_lib::Begin(uint32_t baud)
+void Xbee_lib::Begin(const uint32_t baud)
 {
   // call m_xbee.Begin(19200) from setup() in .ino
   _ss->begin(baud);
@@ -15,7 +15,7 @@ void Xbee_lib::Begin(uint32_t baud)
 
 ////////////////////////////////////////////////////////////
 
-uint8_t Xbee_lib::Get_checksum(uint8_t frame[], uint8_t length)
+uint8_t Xbee_lib::Get_checksum(const uint8_t frame[], const uint8_t length)
 {
   long sum = 0;
   for(int i = 3; i < (length - 1); i++){
@@ -27,7 +27,7 @@ uint8_t Xbee_lib::Get_checksum(uint8_t frame[], uint8_t length)
 
 ////////////////////////////////////////////////////////////
 
-void Xbee_lib::Set_dest_addr(uint8_t array[], uint8_t dest)
+void Xbee_lib::Set_dest_addr(uint8_t array[], const uint8_t dest)
 {
   switch(dest)
   {
@@ -69,7 +69,7 @@ void Xbee_lib::Set_dest_addr(uint8_t array[], uint8_t dest)
 
 ////////////////////////////////////////////////////////////
 
-uint8_t Xbee_lib::Get_address(uint8_t address_byte)
+uint8_t Xbee_lib::Get_address(const uint8_t address_byte)
 {
   int xbee = 0;
   switch(address_byte)
@@ -101,7 +101,7 @@ uint8_t Xbee_lib::Get_address(uint8_t address_byte)
 
 ////////////////////////////////////////////////////////////
 
-void Xbee_lib::Clear_array(uint8_t array[], uint8_t len)
+void Xbee_lib::Clear_array(uint8_t array[], const uint8_t len)
 {
   for(int i = 0; i < len; i++)
   {
@@ -111,7 +111,9 @@ void Xbee_lib::Clear_array(uint8_t array[], uint8_t len)
 
 ////////////////////////////////////////////////////////////
 
-uint8_t Xbee_lib::Transmit_data(uint8_t array[], uint8_t len, ID dest)
+uint8_t Xbee_lib::Transmit_data(uint8_t array[],
+                                const uint8_t len,
+                                const ID dest)
 {
   Set_dest_addr(array, dest);
   uint8_t cs = Get_checksum(array, len);
@@ -124,7 +126,42 @@ uint8_t Xbee_lib::Transmit_data(uint8_t array[], uint8_t len, ID dest)
 
 //////////////////////////////////////////////////////////////////////
 
-void Xbee_lib::Process_byte(uint8_t rx_byte)
+uint8_t Xbee_lib::Transmit_data(const Msg_data tx_msg)
+{
+  const uint8_t length = sizeof(tx_msg.payload) + 20; // omit SOM, MSB, LSB, CHECKSUM
+  uint8_t tx_array[length];
+  tx_array[0] = 0x7E;
+  tx_array[1] = 0x00;
+  tx_array[2] = length - 4;
+  tx_array[3] = tx_msg.frame_type;
+  tx_array[4] = 0x00;  // if not zero, responds with ACK
+  tx_array[5] = ADDR_B0;
+  tx_array[6] = ADDR_B1;
+  tx_array[7] = ADDR_B2;
+  tx_array[8] = ADDR_B3;
+  tx_array[9] = ADDR_B4;
+  Set_dest_addr(tx_array, tx_msg.address);
+  tx_array[13] = 0xFF; // resv 1
+  tx_array[14] = 0xFE; // resv 2
+  tx_array[15] = 0x00; // broadcast radius
+  tx_array[16] = 0x00; // C0 = mesh no-ack , C1 = mesh ack
+  tx_array[17] = tx_msg.payload_cnt;
+  tx_array[18] = tx_msg.payload_id;
+  for(int i = 0; i < sizeof(tx_msg.payload); i++)
+  {
+    tx_array[i + 19] = tx_msg.payload[i];
+  }
+  tx_array[length - 1] = Get_checksum(tx_array, length);
+
+  delay(10);
+  Serial.write(tx_array, length);
+  delay(10);
+  return 1;
+}
+
+//////////////////////////////////////////////////////////////////////
+
+void Xbee_lib::Process_byte(const uint8_t rx_byte)
 {
   m_parser_cnt++;
   switch(m_parser_state)
@@ -164,7 +201,7 @@ void Xbee_lib::Process_byte(uint8_t rx_byte)
 
     case PARSE::UNUSED :
       m_msg_array[m_parser_cnt] = rx_byte;
-      if(m_parser_cnt == RX::RESV_1 + 2)  // RESV 1, RESV2, TX_OPT
+      if(m_parser_cnt == RX::RESV_1 + 2)  // RESV 1, RESV2, RX_OPT
       {
         m_parser_state = PARSE::PAYLOAD_CNT;
       }
@@ -205,6 +242,7 @@ void Xbee_lib::Process_byte(uint8_t rx_byte)
       if(cs == m_msg_array[sizeof(m_msg_array) - 1])
       {
         m_msg_data.valid = true;
+
         _msg_callback(m_msg_data);
       }
       else
@@ -241,8 +279,12 @@ void Xbee_lib::Clear_msg(struct Msg_data& msg)
   msg.address = 0;
   msg.length = 0;
   msg.payload_cnt = 0;
-  msg.payload_id = 0;
-  msg.payload[3] = {};
+  msg.payload_id = CMD_ID::ACK;
+  msg.payload_len = 0;
+  for(int i = 0; i < sizeof(msg.payload); i++)
+  {
+    msg.payload[i] = 0;
+  }
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -254,7 +296,7 @@ void Xbee_lib::Set_callback(void (*msg_callback)(struct Msg_data))
 
 //////////////////////////////////////////////////////////////////////
 
-void Xbee_lib::Print_array(uint8_t array[], uint8_t len, bool hex)
+void Xbee_lib::Print_array(const uint8_t array[], const uint8_t len, bool hex)
 {
   if(hex)
   {
@@ -278,20 +320,45 @@ void Xbee_lib::Print_array(uint8_t array[], uint8_t len, bool hex)
 
 //////////////////////////////////////////////////////////////////////
 
-void Xbee_lib::Print_msg(struct Msg_data msg,
-                         uint8_t len_payload)
+void Xbee_lib::Print_msg(const Msg_data msg, bool hex)
 {
-  _ss->print("Length: ");
-  _ss->println(msg.length, HEX);
-  _ss->print("Frame type: ");
-  _ss->println(msg.frame_type, HEX);
-  _ss->print("Address: ");
-  _ss->println(msg.address, HEX);
-  _ss->print("Count: ");
-  _ss->println(msg.payload_cnt, HEX);
-  _ss->print("Payload id: ");
-  _ss->println(msg.payload_id, HEX);
-  _ss->print("Payload: ");
-  Print_array(msg.payload, len_payload, false);
+  if(hex)
+  {
+    _ss->print("Length: ");
+    _ss->println(msg.length, HEX);
+    _ss->print("Valid: ");
+    _ss->println(msg.valid, HEX);
+    _ss->print("Frame type: ");
+    _ss->println(msg.frame_type, HEX);
+    _ss->print("Address: ");
+    _ss->println(msg.address, HEX);
+    _ss->print("Count: ");
+    _ss->println(msg.payload_cnt, HEX);
+    _ss->print("Payload id: ");
+    _ss->println(msg.payload_id, HEX);
+    _ss->print("Payload length: ");
+    _ss->println(msg.payload_len, HEX);
+    _ss->print("Payload: ");
+    Print_array(msg.payload, sizeof(msg.payload), false);
+  }
+  else
+  {
+    _ss->print("Length: ");
+    _ss->println(msg.length);
+    _ss->print("Valid: ");
+    _ss->println(msg.valid);
+    _ss->print("Frame type: ");
+    _ss->println(msg.frame_type);
+    _ss->print("Address: ");
+    _ss->println(msg.address);
+    _ss->print("Count: ");
+    _ss->println(msg.payload_cnt);
+    _ss->print("Payload id: ");
+    _ss->println(msg.payload_id);
+    _ss->print("Payload length: ");
+    _ss->println(msg.payload_len);
+    _ss->print("Payload: ");
+    Print_array(msg.payload, sizeof(msg.payload));
+  }
   _ss->println();
 }
