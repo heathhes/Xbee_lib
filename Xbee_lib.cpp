@@ -289,7 +289,7 @@ void Xbee_lib::Clear_msg(struct Msg_data& msg)
 
 //////////////////////////////////////////////////////////////////////
 
-void Xbee_lib::Set_callback(void (*msg_callback)(struct Msg_data))
+void Xbee_lib::Set_callback(void (*msg_callback)(const struct Msg_data))
 {
   _msg_callback = msg_callback;
 }

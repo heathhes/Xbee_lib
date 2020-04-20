@@ -21,7 +21,7 @@ public:
 
   void Process_byte(const uint8_t rx_byte);
   void Clear_msg(struct Msg_data& msg);
-  void Set_callback(void (*msg_callback)(struct Msg_data));
+  void Set_callback(void (*msg_callback)(const struct Msg_data));
   void Begin(const uint32_t baud);
   void Print_array(const uint8_t array[], const uint8_t len, bool hex = true);
   void Print_msg(const struct Msg_data msg, bool hex = true);
@@ -30,7 +30,7 @@ protected:
 
 private:
   SoftwareSerial* _ss;
-  void (*_msg_callback)(struct Msg_data);
+  void (*_msg_callback)(const struct Msg_data);
   struct Msg_data m_msg_data;
   uint8_t m_parser_state = PARSE::SOM;
   uint8_t m_parser_cnt = 0;
