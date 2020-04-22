@@ -132,6 +132,19 @@ enum CMD_ID
 };
 }
 
+namespace STAT_ID
+{
+enum STAT_ID
+{
+  NO_ACK  = 'n',    // no acknowledgment expected
+  ACK     = 'a',    // basic response
+  IO_OUT  = 'o',    // digital, pmw, analog outputs
+  IO_IN   = 'i',    // digital, analog , sensor inputs
+  FNCTN_0 = 'f',    // custom function to call
+  FNCTN_1 = 'g'     // custom function to call
+};
+}
+
 struct Msg_data
 {
   bool valid = false;

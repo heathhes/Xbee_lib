@@ -134,18 +134,18 @@ uint8_t Xbee_lib::Transmit_data(const Msg_data tx_msg)
   tx_array[1] = 0x00;
   tx_array[2] = length - 4;
   tx_array[3] = tx_msg.frame_type;
-  tx_array[4] = 0x00;  // if not zero, responds with ACK
+  tx_array[4] = 0x00;                 // if not zero, responds with ACK
   tx_array[5] = ADDR_B0;
   tx_array[6] = ADDR_B1;
   tx_array[7] = ADDR_B2;
   tx_array[8] = ADDR_B3;
   tx_array[9] = ADDR_B4;
   Set_dest_addr(tx_array, tx_msg.address);
-  tx_array[13] = 0xFF; // resv 1
-  tx_array[14] = 0xFE; // resv 2
-  tx_array[15] = 0x00; // broadcast radius
-  tx_array[16] = 0x00; // C0 = mesh no-ack , C1 = mesh ack
-  tx_array[17] = tx_msg.payload_cnt;
+  tx_array[13] = 0xFF;                // resv 1
+  tx_array[14] = 0xFE;                // resv 2
+  tx_array[15] = 0x00;                // broadcast radius
+  tx_array[16] = 0x00;                // C0 = mesh no-ack , C1 = mesh ack
+  tx_array[17] = tx_msg.payload_cnt;  // payload byte 1
   tx_array[18] = tx_msg.payload_id;
   for(int i = 0; i < sizeof(tx_msg.payload); i++)
   {
