@@ -1,8 +1,8 @@
 #include "Xbee_lib.h"
 
-Xbee_lib::Xbee_lib(SoftwareSerial *ss)
+Xbee_lib::Xbee_lib(Print_lib *printer)
 {
-  _ss = ss;
+  _m_print = printer;
 };
 
 ////////////////////////////////////////////////////////////
@@ -10,8 +10,8 @@ Xbee_lib::Xbee_lib(SoftwareSerial *ss)
 void Xbee_lib::Begin(const uint32_t baud)
 {
   // call m_xbee.Begin(19200) from setup() in .ino
-  _ss->begin(baud);
-}
+  _m_print->Begin(baud);
+};
 
 ////////////////////////////////////////////////////////////
 
@@ -115,6 +115,7 @@ uint8_t Xbee_lib::Transmit_data(uint8_t array[],
                                 const uint8_t len,
                                 const ID dest)
 {
+  _m_print->Println("TX'ing");
   Set_dest_addr(array, dest);
   uint8_t cs = Get_checksum(array, len);
   array[len - 1] = cs;
@@ -126,10 +127,11 @@ uint8_t Xbee_lib::Transmit_data(uint8_t array[],
 
 //////////////////////////////////////////////////////////////////////
 
-uint8_t Xbee_lib::Transmit_data(const Msg_data tx_msg)
+bool Xbee_lib::Build_frame(const Msg_data tx_msg, uint8_t* tx_array)
 {
+  _m_print->Println("TX'ing");
   const uint8_t length = sizeof(tx_msg.payload) + 20; // omit SOM, MSB, LSB, CHECKSUM
-  uint8_t tx_array[length];
+  //uint8_t tx_array[length];
   tx_array[0] = 0x7E;
   tx_array[1] = 0x00;
   tx_array[2] = length - 4;
@@ -153,10 +155,7 @@ uint8_t Xbee_lib::Transmit_data(const Msg_data tx_msg)
   }
   tx_array[length - 1] = Get_checksum(tx_array, length);
 
-  delay(10);
-  Serial.write(tx_array, length);
-  delay(10);
-  return 1;
+  return true;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -247,7 +246,7 @@ void Xbee_lib::Process_byte(const uint8_t rx_byte)
       }
       else
       {
-        _ss->println("Invalid checksum");
+        _m_print->Println("Invalid checksum");
       }
       reset_parser();
       break;
@@ -294,71 +293,3 @@ void Xbee_lib::Set_callback(void (*msg_callback)(const struct Msg_data))
   _msg_callback = msg_callback;
 }
 
-//////////////////////////////////////////////////////////////////////
-
-void Xbee_lib::Print_array(const uint8_t array[], const uint8_t len, bool hex)
-{
-  if(hex)
-  {
-    for(int i = 0; i < len; i++)
-    {
-      _ss->print(array[i],HEX);
-      _ss->print(", ");
-    }
-    _ss->println();
-  }
-  else
-  {
-    for(int i = 0; i < len; i++)
-    {
-      _ss->print(array[i]);
-      _ss->print(", ");
-    }
-    _ss->println();
-  }
-}
-
-//////////////////////////////////////////////////////////////////////
-
-void Xbee_lib::Print_msg(const Msg_data msg, bool hex)
-{
-  if(hex)
-  {
-    _ss->print("Length: ");
-    _ss->println(msg.length, HEX);
-    _ss->print("Valid: ");
-    _ss->println(msg.valid, HEX);
-    _ss->print("Frame type: ");
-    _ss->println(msg.frame_type, HEX);
-    _ss->print("Address: ");
-    _ss->println(msg.address, HEX);
-    _ss->print("Count: ");
-    _ss->println(msg.payload_cnt, HEX);
-    _ss->print("Payload id: ");
-    _ss->println(msg.payload_id, HEX);
-    _ss->print("Payload length: ");
-    _ss->println(msg.payload_len, HEX);
-    _ss->print("Payload: ");
-    Print_array(msg.payload, sizeof(msg.payload), false);
-  }
-  else
-  {
-    _ss->print("Length: ");
-    _ss->println(msg.length);
-    _ss->print("Valid: ");
-    _ss->println(msg.valid);
-    _ss->print("Frame type: ");
-    _ss->println(msg.frame_type);
-    _ss->print("Address: ");
-    _ss->println(msg.address);
-    _ss->print("Count: ");
-    _ss->println(msg.payload_cnt);
-    _ss->print("Payload id: ");
-    _ss->println(msg.payload_id);
-    _ss->print("Payload length: ");
-    _ss->println(msg.payload_len);
-    _ss->print("Payload: ");
-    Print_array(msg.payload, sizeof(msg.payload));
-  }
-  _ss->println();
-}

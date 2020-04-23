@@ -1,14 +1,15 @@
 #ifndef Xbee_lib_h
 #define Xbee_lib_h
 
-#include "Arduino.h"
-#include "Xbee_lib_defs.h"
+#include <Arduino.h>
+#include <Xbee_lib_defs.h>
+#include <Print_lib.h>
 #include <SoftwareSerial.h>
 
 class Xbee_lib
 {
 public:
-  Xbee_lib(SoftwareSerial* ss);
+  Xbee_lib(Print_lib* printer);
   uint8_t Get_checksum(const uint8_t frame[], const uint8_t len);
   void Set_dest_addr(uint8_t array[], const uint8_t dest);
   uint8_t Get_address(const uint8_t address_byte);
@@ -17,7 +18,7 @@ public:
                         const uint8_t len,
                         const ID dest = ID::XBEE_1);
 
-  uint8_t Transmit_data(const struct Msg_data tx_msg);
+  bool Build_frame(const struct Msg_data tx_msg, uint8_t* tx_array);
 
   void Process_byte(const uint8_t rx_byte);
   void Clear_msg(struct Msg_data& msg);
@@ -29,7 +30,7 @@ public:
 protected:
 
 private:
-  SoftwareSerial* _ss;
+  Print_lib* _m_print;
   void (*_msg_callback)(const struct Msg_data);
   struct Msg_data m_msg_data;
   uint8_t m_parser_state = PARSE::SOM;
