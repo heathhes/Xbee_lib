@@ -3,15 +3,7 @@
 Xbee_lib::Xbee_lib(Print_lib *printer)
 {
   _m_print = printer;
-};
-
-////////////////////////////////////////////////////////////
-
-void Xbee_lib::Begin(const uint32_t baud)
-{
-  // call m_xbee.Begin(19200) from setup() in .ino
-  _m_print->Begin(baud);
-};
+}
 
 ////////////////////////////////////////////////////////////
 
@@ -23,7 +15,7 @@ uint8_t Xbee_lib::Get_checksum(const uint8_t frame[], const uint8_t length)
   }
   uint8_t check_sum = 0xFF - (sum & 0xFF);
   return check_sum;
-};
+}
 
 ////////////////////////////////////////////////////////////
 
@@ -65,7 +57,7 @@ void Xbee_lib::Set_dest_addr(uint8_t array[], const uint8_t dest)
     default:
       break;
   }
-};
+}
 
 ////////////////////////////////////////////////////////////
 
@@ -97,7 +89,7 @@ uint8_t Xbee_lib::Get_address(const uint8_t address_byte)
       break;
   }
   return xbee;
-};
+}
 
 ////////////////////////////////////////////////////////////
 
@@ -107,31 +99,13 @@ void Xbee_lib::Clear_array(uint8_t array[], const uint8_t len)
   {
     array[i] = 0;
   }
-};
-
-////////////////////////////////////////////////////////////
-
-uint8_t Xbee_lib::Transmit_data(uint8_t array[],
-                                const uint8_t len,
-                                const ID dest)
-{
-  _m_print->Println("TX'ing");
-  Set_dest_addr(array, dest);
-  uint8_t cs = Get_checksum(array, len);
-  array[len - 1] = cs;
-  delay(10);
-  Serial.write(array, len);
-  delay(10);
-  return 1;
-};
+}
 
 //////////////////////////////////////////////////////////////////////
 
 bool Xbee_lib::Build_frame(const Msg_data tx_msg, uint8_t* tx_array)
 {
-  _m_print->Println("TX'ing");
   const uint8_t length = sizeof(tx_msg.payload) + 20; // omit SOM, MSB, LSB, CHECKSUM
-  //uint8_t tx_array[length];
   tx_array[0] = 0x7E;
   tx_array[1] = 0x00;
   tx_array[2] = length - 4;
@@ -149,10 +123,12 @@ bool Xbee_lib::Build_frame(const Msg_data tx_msg, uint8_t* tx_array)
   tx_array[16] = 0x00;                // C0 = mesh no-ack , C1 = mesh ack
   tx_array[17] = tx_msg.payload_cnt;  // payload byte 1
   tx_array[18] = tx_msg.payload_id;
+
   for(int i = 0; i < sizeof(tx_msg.payload); i++)
   {
     tx_array[i + 19] = tx_msg.payload[i];
   }
+
   tx_array[length - 1] = Get_checksum(tx_array, length);
 
   return true;
@@ -178,7 +154,6 @@ void Xbee_lib::Process_byte(const uint8_t rx_byte)
       m_msg_array[m_parser_cnt] = rx_byte;
       if(m_parser_cnt == RX::LSB_LEN)
       {
-        m_msg_data.length = rx_byte;
         m_parser_state = PARSE::FRAME_TYPE;
       }
       break;
@@ -242,11 +217,12 @@ void Xbee_lib::Process_byte(const uint8_t rx_byte)
       {
         m_msg_data.valid = true;
 
+        // valid message, callback
         _msg_callback(m_msg_data);
       }
       else
       {
-        _m_print->Println("Invalid checksum");
+        _m_print->Println("XBEE_LIB: Invalid checksum");
       }
       reset_parser();
       break;
@@ -276,7 +252,6 @@ void Xbee_lib::Clear_msg(struct Msg_data& msg)
   msg.valid = false;
   msg.frame_type = 0;
   msg.address = 0;
-  msg.length = 0;
   msg.payload_cnt = 0;
   msg.payload_id = CMD_ID::ACK;
   msg.payload_len = 0;
@@ -284,7 +259,7 @@ void Xbee_lib::Clear_msg(struct Msg_data& msg)
   {
     msg.payload[i] = 0;
   }
-};
+}
 
 //////////////////////////////////////////////////////////////////////
 

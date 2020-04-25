@@ -126,7 +126,7 @@ enum CMD_ID
   NO_ACK  = 'n',    // no acknowledgment expected
   ACK     = 'a',    // basic response
   IO_OUT  = 'o',    // digital, pmw, analog outputs
-  IO_IN   = 'i',    // digital, analog , sensor inputs
+  IO_IN   = 'i',    // HEX: 69 digital, analog , sensor inputs
   FNCTN_0 = 'f',    // custom function to call
   FNCTN_1 = 'g'     // custom function to call
 };
@@ -150,9 +150,8 @@ struct Msg_data
   bool valid = false;
   uint8_t frame_type = 0;
   uint8_t address = 0;
-  uint8_t length = 0;
-  uint8_t payload_cnt = 0;
   uint8_t payload_id = CMD_ID::ACK;
+  uint8_t payload_cnt = 0;
   uint8_t payload_len = 0;
   uint8_t payload[3] = {};
 };
